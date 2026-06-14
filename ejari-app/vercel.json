@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "functions": {
+    "api/generate.js": { "memory": 1024, "maxDuration": 30 },
+    "api/scan-id.js":  { "memory": 512,  "maxDuration": 30 }
+  },
+  "routes": [
+    { "src": "/api/generate", "dest": "/api/generate.js" },
+    { "src": "/api/scan-id",  "dest": "/api/scan-id.js"  },
+    { "src": "/preview",      "dest": "/public/preview.html" },
+    { "src": "/(.*)",         "dest": "/public/$1" }
+  ]
+}

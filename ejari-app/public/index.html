@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ejari Contract Generator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #F4F2EE;
+  --surface: #FFFFFF;
+  --border: #E0DCD4;
+  --border-focus: #1A3C5E;
+  --text: #1C1C1C;
+  --text-muted: #7A7670;
+  --navy: #1A3C5E;
+  --navy-dark: #102740;
+  --navy-light: #EBF1F8;
+  --gold: #B8960C;
+  --gold-bg: #FBF7E4;
+  --green: #166534;
+  --green-bg: #DCFCE7;
+  --red: #991B1B;
+  --red-bg: #FEE2E2;
+  --r: 10px;
+  --rs: 7px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.hdr {
+  background: var(--navy);
+  padding: 0 20px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 12px rgba(0,0,0,.2);
+}
+.hdr-logo {
+  width: 32px; height: 32px;
+  background: var(--gold);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.hdr h1 { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -.01em; }
+.hdr p  { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 1px; }
+
+/* ── Layout ── */
+.wrap { max-width: 700px; margin: 0 auto; padding: 20px 16px 60px; }
+
+/* ── Progress dots ── */
+.steps {
+  display: flex; gap: 8px; align-items: center;
+  margin-bottom: 22px; padding: 0 2px;
+}
+.step-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color .2s;
+}
+.step-item.active { color: var(--navy); }
+.step-item.done   { color: var(--gold); }
+.step-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border); flex-shrink: 0;
+  transition: background .2s;
+}
+.step-item.active .step-dot { background: var(--navy); }
+.step-item.done   .step-dot { background: var(--gold); }
+.step-sep { flex: 1; height: 1px; background: var(--border); }
+
+/* ── Section card ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.card-hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 18px;
+  background: var(--navy);
+  cursor: pointer;
+  user-select: none;
+}
+.card-hdr:hover { background: var(--navy-dark); }
+.card-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.card-title { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
+.card-ar    { font-size: 11px; color: rgba(255,255,255,.5); direction: rtl; }
+.card-chev  { color: rgba(255,255,255,.6); font-size: 11px; transition: transform .2s; }
+.card.collapsed .card-chev { transform: rotate(-90deg); }
+.card-body  { padding: 18px 18px 20px; }
+.card.collapsed .card-body { display: none; }
+
+/* ── Party blocks (Landlord / Tenant cards) ── */
+.party-block {
+  border: 1.5px solid var(--border);
+  border-radius: var(--rs);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.party-block-hdr {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.party-block-title { font-size: 12px; font-weight: 600; flex: 1; color: var(--navy); }
+.party-remove {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 16px; line-height: 1;
+  padding: 2px 4px; border-radius: 4px;
+  transition: background .15s, color .15s;
+}
+.party-remove:hover { background: var(--red-bg); color: var(--red); }
+.party-body { padding: 14px; display: grid; gap: 10px; }
+
+/* ── Scan banner ── */
+.scan-bar {
+  background: var(--gold-bg);
+  border: 1px solid #E8D58A;
+  border-radius: var(--rs);
+  padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
+}
+.scan-bar-text { flex: 1; }
+.scan-bar-text strong { display: block; font-size: 11px; font-weight: 600; color: #7A5000; }
+.scan-bar-text span   { font-size: 10px; color: #9A7200; }
+.scan-bar-btns { display: flex; gap: 6px; }
+
+.btn-scan {
+  background: var(--gold);
+  color: #fff;
+  border: none; border-radius: var(--rs);
+  padding: 7px 11px;
+  font-size: 11px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 5px;
+  transition: background .15s; white-space: nowrap;
+}
+.btn-scan:hover { background: #9A7200; }
+.btn-scan.secondary {
+  background: none;
+  border: 1.5px solid var(--gold);
+  color: var(--gold);
+}
+.btn-scan.secondary:hover { background: var(--gold-bg); }
+
+/* ── Form fields ── */
+.grid-2  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid-1  { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.grid-3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+label {
+  font-size: 10px; font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .04em;
+  display: flex; align-items: center; gap: 4px;
+}
+label .ar { text-transform: none; letter-spacing: 0; opacity: .65; font-size: 10px; }
+label .req { color: var(--red); }
+
+input[type=text], input[type=email], input[type=tel],
+input[type=number], input[type=date], select {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 8px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--rs);
+  background: #FAFAF8;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s, background .15s;
+  width: 100%;
+  -webkit-appearance: none;
+}
+input:focus, select:focus {
+  border-color: var(--border-focus);
+  background: #fff;
+}
+input.autofilled {
+  border-color: var(--navy);
+  background: var(--navy-light);
+  animation: pulse-blue .4s ease;
+}
+@keyframes pulse-blue {
+  0%   { box-shadow: 0 0 0 0 rgba(26,60,94,.3); }
+  100% { box-shadow: 0 0 0 6px rgba(26,60,94,0); }
+}
+input.eid { font-family: 'IBM Plex Mono', monospace; letter-spacing: .04em; }
+
+/* ── Radio pill group ── */
+.radio-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.radio-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 100px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all .15s;
+}
+.radio-pill:hover { border-color: var(--navy); background: var(--navy-light); }
+.radio-pill.on {
+  border-color: var(--navy);
+  background: var(--navy-light);
+  color: var(--navy);
+  font-weight: 600;
+}
+.radio-pill input { display: none; }
+
+/* ── Add party button ── */
+.btn-add-party {
+  width: 100%;
+  padding: 9px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--rs);
+  background: none;
+  color: var(--text-muted);
+  font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin-top: 4px;
+}
+.btn-add-party:hover { border-color: var(--navy); color: var(--navy); background: var(--navy-light); }
+
+/* ── Divider tip ── */
+.tip {
+  background: var(--navy-light);
+  border-left: 3px solid var(--navy);
+  border-radius: 0 var(--rs) var(--rs) 0;
+  padding: 8px 11px;
+  font-size: 11px; color: var(--navy);
+}
+
+/* ── Generate ── */
+.gen-wrap { margin-top: 22px; }
+.btn-gen {
+  width: 100%;
+  padding: 15px;
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: var(--r);
+  font-size: 15px; font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  letter-spacing: -.01em;
+  transition: all .2s;
+}
+.btn-gen:hover { background: var(--navy-dark); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(26,60,94,.3); }
+.btn-gen:disabled { background: #9BB5CC; transform: none; box-shadow: none; cursor: not-allowed; }
+
+.toast {
+  background: var(--green-bg);
+  border: 1px solid #86EFAC;
+  border-radius: var(--r);
+  padding: 13px 16px;
+  text-align: center;
+  margin-top: 10px;
+  display: none;
+  animation: fadeIn .3s;
+}
+.toast.show { display: block; }
+.toast strong { color: var(--green); font-size: 14px; }
+.toast p { color: var(--green); font-size: 11px; margin-top: 3px; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── Scan Modal ── */
+.overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.65);
+  z-index: 200;
+  align-items: flex-end; justify-content: center;
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 22px 20px 28px;
+  width: 100%; max-width: 480px;
+  max-height: 92vh; overflow-y: auto;
+  animation: slideUp .25s ease;
+}
+@keyframes slideUp { from { transform:translateY(40px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 18px; }
+.modal h2 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+
+.doc-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.doc-tab {
+  flex: 1; padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--rs);
+  background: none; cursor: pointer;
+  font-size: 12px; font-weight: 500;
+  transition: all .15s; text-align: center;
+}
+.doc-tab.on { border-color: var(--navy); background: var(--navy-light); color: var(--navy); }
+
+.side-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.side-tab {
+  flex: 1; padding: 7px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--rs);
+  background: none; cursor: pointer;
+  font-size: 11px; font-weight: 500;
+  transition: all .15s; text-align: center;
+}
+.side-tab.on { border-color: var(--gold); background: var(--gold-bg); color: #7A5000; }
+#passportSideRow { display: none; }
+
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--r);
+  padding: 28px 18px;
+  text-align: center; cursor: pointer;
+  transition: all .2s; position: relative;
+}
+.upload-zone:hover, .upload-zone.drag { border-color: var(--navy); background: var(--navy-light); }
+.upload-zone input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon { font-size: 34px; margin-bottom: 8px; }
+.upload-zone strong { display: block; font-size: 13px; margin-bottom: 3px; }
+.upload-zone span { font-size: 11px; color: var(--text-muted); }
+
+.scan-img {
+  width: 100%; max-height: 190px; object-fit: contain;
+  border-radius: var(--rs); margin-bottom: 10px; display: none;
+}
+.scan-img.show { display: block; }
+
+.scan-result {
+  background: var(--green-bg);
+  border: 1px solid #A7F3D0;
+  border-radius: var(--rs);
+  padding: 11px 13px; margin-bottom: 10px; display: none;
+}
+.scan-result.show { display: block; }
+.scan-result-title { font-size: 11px; font-weight: 700; color: var(--green); margin-bottom: 7px; }
+.scan-row { font-size: 12px; display: flex; justify-content: space-between; padding: 2px 0; }
+.scan-row span:first-child { color: var(--text-muted); }
+.scan-row span:last-child { font-weight: 600; }
+
+.scan-err {
+  background: var(--red-bg);
+  border: 1px solid #FECACA;
+  border-radius: var(--rs);
+  padding: 9px 11px; font-size: 12px;
+  color: var(--red); margin-bottom: 10px; display: none;
+}
+.scan-err.show { display: block; }
+
+.modal-btns { display: flex; gap: 8px; margin-top: 14px; }
+.btn { flex: 1; padding: 11px; border: none; border-radius: var(--rs); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.btn-primary { background: var(--navy); color: #fff; }
+.btn-primary:hover { background: var(--navy-dark); }
+.btn-primary:disabled { background: #9BB5CC; cursor: not-allowed; }
+.btn-outline { background: var(--bg); border: 1.5px solid var(--border); color: var(--text); }
+.btn-outline:hover { border-color: var(--navy); }
+
+.spinner {
+  display: inline-block; width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  vertical-align: middle; margin-right: 5px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 480px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .steps { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">🏛️</div>
+  <div>
+    <h1>Ejari Contract Generator</h1>
+    <p>Dubai Land Department · Unified Tenancy Contract</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- progress -->
+  <div class="steps" id="steps">
+    <div class="step-item active" id="si1" onclick="scrollTo('sec-date')"><div class="step-dot"></div>Date</div>
+    <div class="step-sep"></div>
+    <div class="step-item" id="si2" onclick="scrollTo('sec-landlord')"><div class="step-dot"></div>Landlord</div>
+    <div class="step-sep"></div>
+    <div class="step-item" id="si3" onclick="scrollTo('sec-tenant')"><div class="step-dot"></div>Tenant</div>
+    <div class="step-sep"></div>
+    <div class="step-item" id="si4" onclick="scrollTo('sec-property')"><div class="step-dot"></div>Property</div>
+    <div class="step-sep"></div>
+    <div class="step-item" id="si5" onclick="scrollTo('sec-contract')"><div class="step-dot"></div>Contract</div>
+  </div>
+
+  <form id="form">
+
+    <!-- 1. Date -->
+    <div class="card" id="sec-date">
+      <div class="card-hdr" onclick="toggle('sec-date')">
+        <div class="card-num">1</div>
+        <div class="card-title">Contract Date</div>
+        <div class="card-ar">التاريخ</div>
+        <div class="card-chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="field">
+            <label>Contract Date <span class="ar">التاريخ</span> <span class="req">*</span></label>
+            <input type="date" id="date" name="date" required>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Landlord(s) -->
+    <div class="card" id="sec-landlord">
+      <div class="card-hdr" onclick="toggle('sec-landlord')">
+        <div class="card-num">2</div>
+        <div class="card-title">Owner / Lessor</div>
+        <div class="card-ar">معلومات المالك/المؤجر</div>
+        <div class="card-chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div id="landlord-list"></div>
+        <button type="button" class="btn-add-party" onclick="addParty('landlord')">
+          ＋ Add additional landlord
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Tenant(s) -->
+    <div class="card" id="sec-tenant">
+      <div class="card-hdr" onclick="toggle('sec-tenant')">
+        <div class="card-num">3</div>
+        <div class="card-title">Tenant Information</div>
+        <div class="card-ar">معلومات المستأجر</div>
+        <div class="card-chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div id="tenant-list"></div>
+        <button type="button" class="btn-add-party" onclick="addParty('tenant')">
+          ＋ Add additional tenant
+        </button>
+      </div>
+    </div>
+
+    <!-- 4. Property -->
+    <div class="card" id="sec-property">
+      <div class="card-hdr" onclick="toggle('sec-property')">
+        <div class="card-num">4</div>
+        <div class="card-title">Property Information</div>
+        <div class="card-ar">معلومات العقار</div>
+        <div class="card-chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div class="scan-bar">
+          <div class="scan-bar-text">
+            <strong>📄 Scan Title Deed</strong>
+            <span>Auto-fill unit, plot, area and DEWA from a photo or PDF page</span>
+          </div>
+          <div class="scan-bar-btns">
+            <button type="button" class="btn-scan" onclick="openScanProperty()">📷 Scan Deed</button>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:4px">
+          <label>Property Usage <span class="ar">استخدام العقار</span></label>
+          <div class="radio-row" id="usageGroup">
+            <label class="radio-pill on" onclick="pickUsage('residential',this)">
+              <input type="radio" name="propertyUsage" value="residential" checked> 🏠 Residential
+            </label>
+            <label class="radio-pill" onclick="pickUsage('commercial',this)">
+              <input type="radio" name="propertyUsage" value="commercial"> 🏢 Commercial
+            </label>
+            <label class="radio-pill" onclick="pickUsage('industrial',this)">
+              <input type="radio" name="propertyUsage" value="industrial"> 🏭 Industrial
+            </label>
+          </div>
+        </div>
+        <div class="grid-1">
+          <div class="field">
+            <label>Location <span class="ar">الموقع</span></label>
+            <input type="text" name="location" placeholder="e.g. Dubai Marina, Downtown, JBR">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Building Name <span class="ar">اسم المبنى</span></label>
+            <input type="text" name="buildingName" placeholder="Building / tower name">
+          </div>
+          <div class="field">
+            <label>Unit / Property No. <span class="ar">رقم العقار</span></label>
+            <input type="text" name="propertyNo" placeholder="e.g. Apt 1204">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Property Type <span class="ar">نوع الوحدة</span></label>
+            <input type="text" name="propertyType" placeholder="e.g. Apartment, Villa, Office">
+          </div>
+          <div class="field">
+            <label>Area (m²) <span class="ar">المساحة</span></label>
+            <input type="number" name="propertyArea" placeholder="e.g. 85.5" step="0.01">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Plot No. <span class="ar">رقم الأرض</span></label>
+            <input type="text" name="plotNo" placeholder="Plot number">
+          </div>
+          <div class="field">
+            <label>Makani No. <span class="ar">رقم مكاني</span></label>
+            <input type="text" name="makaniNo" placeholder="10-digit Makani no.">
+          </div>
+        </div>
+        <div class="grid-1">
+          <div class="field">
+            <label>DEWA Premises No. <span class="ar">رقم المبنى (ديوا)</span></label>
+            <input type="text" name="dewaPremises" placeholder="DEWA premises number">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Contract -->
+    <div class="card" id="sec-contract">
+      <div class="card-hdr" onclick="toggle('sec-contract')">
+        <div class="card-num">5</div>
+        <div class="card-title">Contract Details</div>
+        <div class="card-ar">معلومات العقد</div>
+        <div class="card-chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="field">
+            <label>Start Date <span class="ar">من</span></label>
+            <input type="date" name="contractFrom">
+          </div>
+          <div class="field">
+            <label>End Date <span class="ar">إلى</span></label>
+            <input type="date" name="contractTo">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Annual Rent (AED) <span class="ar">الإيجار السنوي</span></label>
+            <input type="number" name="annualRent" placeholder="e.g. 75000" id="annualRentInp">
+          </div>
+          <div class="field">
+            <label>Contract Value (AED) <span class="ar">قيمة العقد</span></label>
+            <input type="number" name="contractValue" placeholder="Usually = annual rent" id="contractValueInp">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Security Deposit (AED) <span class="ar">مبلغ التأمين</span></label>
+            <input type="number" name="securityDeposit" placeholder="e.g. 7500">
+          </div>
+          <div class="field">
+            <label>Mode of Payment <span class="ar">طريقة الدفع</span></label>
+            <input type="text" name="modeOfPayment" placeholder="e.g. 4 Post-dated Cheques">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Additional Terms (page 3) -->
+    <div class="card" id="sec-addterms">
+      <div class="card-hdr" onclick="toggle('sec-addterms')">
+        <div class="card-num">6</div>
+        <div class="card-title">Additional Terms <span style="font-size:10px;opacity:.7;font-weight:400">(optional — page 3)</span></div>
+        <div class="card-ar">شروط إضافية</div>
+        <div class="card-chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div class="tip">Up to 5 additional terms will be printed on page 3 of the contract.</div>
+        <div class="grid-1" style="margin-top:10px">
+          <div class="field"><label>Term 1</label><input type="text" name="additionalTerm1" placeholder="e.g. Pets not allowed on the premises"></div>
+          <div class="field"><label>Term 2</label><input type="text" name="additionalTerm2" placeholder="e.g. Parking space No. B-12 is included"></div>
+          <div class="field"><label>Term 3</label><input type="text" name="additionalTerm3" placeholder=""></div>
+          <div class="field"><label>Term 4</label><input type="text" name="additionalTerm4" placeholder=""></div>
+          <div class="field"><label>Term 5</label><input type="text" name="additionalTerm5" placeholder=""></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generate -->
+    <div class="gen-wrap">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <button type="submit" class="btn-gen" id="genBtn">
+          <span>📄</span> Download Filled PDF
+        </button>
+        <button type="button" class="btn-gen" id="previewBtn" onclick="openPreview()"
+          style="background:var(--gold);letter-spacing:-.01em">
+          <span>🖨️</span> Preview &amp; Print
+        </button>
+      </div>
+      <div class="toast" id="toast">
+        <strong>✅ Contract downloaded!</strong>
+        <p>Your filled PDF is ready to print and sign.</p>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<!-- ── Scan Modal ── -->
+<div class="overlay" id="scanOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modalTitle">Scan ID</h2>
+    <div class="modal-sub" id="modalSub">Upload a photo to auto-fill fields.</div>
+
+    <div class="doc-tabs" id="docTabs">
+      <button type="button" class="doc-tab on" onclick="setDocType('eid',this)">🪪 Emirates ID</button>
+      <button type="button" class="doc-tab"    onclick="setDocType('passport',this)">📘 Passport</button>
+      <button type="button" class="doc-tab"    onclick="setDocType('deed',this)">📄 Title Deed</button>
+      <button type="button" class="doc-tab"    onclick="setDocType('manual',this)">✏️ Manual</button>
+    </div>
+
+    <div id="passportSideRow" class="side-tabs" style="display:none">
+      <button type="button" class="side-tab on" onclick="setSide('front',this)">Front</button>
+      <button type="button" class="side-tab"    onclick="setSide('back',this)">Back</button>
+    </div>
+
+    <div id="scanHint" style="font-size:11px;color:var(--text-muted);margin-bottom:10px;padding:7px 10px;background:var(--navy-light);border-radius:var(--rs);">
+      📸 Take a clear photo or upload a scan — Claude reads the document and fills the relevant fields automatically.
+    </div>
+
+    <div id="uploadSection">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInp" accept="image/*" capture="environment" onchange="onFileSelect(event)">
+        <div class="upload-icon">📸</div>
+        <strong>Tap to take photo or upload</strong>
+        <span>JPEG or PNG · Max 10 MB</span>
+      </div>
+    </div>
+
+    <div id="manualSection" style="display:none">
+      <div class="grid-2" id="manualFields" style="gap:10px; margin-bottom:4px"></div>
+    </div>
+
+    <img id="scanPreview" class="scan-img" alt="preview">
+    <div class="scan-err" id="scanErr"></div>
+    <div class="scan-result" id="scanResult"></div>
+
+    <div class="modal-btns">
+      <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" id="scanBtn" onclick="doScan()" disabled>Scan & Fill</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+let landlordCount = 0, tenantCount = 0;
+let scanTarget = null, scanIdx = 0;
+let docType = 'eid', scanSide = 'front';
+let imgB64 = null, imgMime = 'image/jpeg';
+
+// ── Init ───────────────────────────────────────────────────────────────
+document.getElementById('date').valueAsDate = new Date();
+addParty('landlord');
+addParty('tenant');
+
+// Auto-fill contractValue when annualRent changes
+document.getElementById('annualRentInp').addEventListener('input', e => {
+  const cv = document.getElementById('contractValueInp');
+  if (!cv.value || cv.dataset.touched !== '1') cv.value = e.target.value;
+});
+document.getElementById('contractValueInp').addEventListener('input', e => {
+  e.target.dataset.touched = '1';
+});
+
+// ── Section collapse ───────────────────────────────────────────────────
+function toggle(id) { document.getElementById(id).classList.toggle('collapsed'); }
+
+// ── Usage radio ────────────────────────────────────────────────────────
+function pickUsage(val, el) {
+  document.querySelectorAll('.radio-pill').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+}
+
+// ── Scroll to section ──────────────────────────────────────────────────
+function scrollTo(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Party blocks ───────────────────────────────────────────────────────
+function addParty(type) {
+  const isList = document.getElementById(type + '-list');
+  const isLandlord = type === 'landlord';
+  const idx = isLandlord ? ++landlordCount : ++tenantCount;
+  const label = isLandlord ? `Landlord ${idx}` : `Tenant ${idx}`;
+  const canRemove = idx > 1;
+
+  const block = document.createElement('div');
+  block.className = 'party-block';
+  block.id = `${type}-${idx}`;
+
+  block.innerHTML = `
+    <div class="party-block-hdr">
+      <span class="party-block-title">${label}</span>
+      <div class="scan-bar-btns">
+        <button type="button" class="btn-scan secondary" onclick="openScan('${type}',${idx})">🪪 Scan / Enter</button>
+      </div>
+      ${canRemove ? `<button type="button" class="party-remove" onclick="removeParty('${type}-${idx}')">×</button>` : ''}
+    </div>
+    <div class="party-body">
+      <div class="grid-1">
+        <div class="field">
+          <label>Full Name ${isLandlord ? '<span class="ar">اسم المالك</span>' : '<span class="ar">اسم المستأجر</span>'}</label>
+          <input type="text" id="${type}${idx}_name" placeholder="Full legal name">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Emirates ID <span class="ar">الهوية الإماراتية</span></label>
+          <input type="text" id="${type}${idx}_eid" class="eid" placeholder="784-XXXX-XXXXXXX-X" maxlength="18">
+        </div>
+        <div class="field">
+          <label>Phone <span class="ar">الهاتف</span></label>
+          <input type="tel" id="${type}${idx}_phone" placeholder="+971 50 000 0000">
+        </div>
+      </div>
+      <div class="grid-1">
+        <div class="field">
+          <label>Email <span class="ar">البريد الإلكتروني</span></label>
+          <input type="email" id="${type}${idx}_email" placeholder="email@example.com">
+        </div>
+      </div>
+      ${isLandlord ? `
+      <div class="tip">Company lessor only — leave blank if individual</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>License No. <span class="ar">رقم الرخصة</span></label>
+          <input type="text" id="${type}${idx}_license" placeholder="Trade licence no.">
+        </div>
+        <div class="field">
+          <label>Licensing Authority <span class="ar">سلطة الترخيص</span></label>
+          <input type="text" id="${type}${idx}_authority" placeholder="e.g. DED, DMCC">
+        </div>
+      </div>` : ''}
+    </div>`;
+
+  isList.appendChild(block);
+
+  // EID auto-format
+  const eidInp = document.getElementById(`${type}${idx}_eid`);
+  if (eidInp) {
+    eidInp.addEventListener('input', function() {
+      let v = this.value.replace(/[^0-9]/g, '');
+      if (v.length > 3)  v = v.slice(0,3) + '-' + v.slice(3);
+      if (v.length > 8)  v = v.slice(0,8) + '-' + v.slice(8);
+      if (v.length > 16) v = v.slice(0,16) + '-' + v.slice(16);
+      this.value = v.slice(0, 18);
+    });
+  }
+}
+
+function removeParty(id) {
+  document.getElementById(id)?.remove();
+}
+
+// ── Scan modal ─────────────────────────────────────────────────────────
+function openScan(type, idx) {
+  scanTarget = type; scanIdx = idx;
+  docType = 'eid'; scanSide = 'front'; imgB64 = null;
+  // Show EID + Passport + Manual tabs (no deed for person)
+  _showTabs(['eid','passport','manual']);
+  document.getElementById('modalTitle').textContent =
+    type === 'landlord' ? `Landlord ${idx} — Add Details` : `Tenant ${idx} — Add Details`;
+  document.getElementById('modalSub').textContent =
+    'Scan a document to auto-fill, or enter manually.';
+  document.getElementById('scanOverlay').classList.add('open');
+  _activateDocType('eid');
+}
+
+function openScanProperty() {
+  scanTarget = 'property'; scanIdx = 0;
+  docType = 'deed'; scanSide = 'front'; imgB64 = null;
+  // Show Deed + Manual tabs only
+  _showTabs(['deed','manual']);
+  document.getElementById('modalTitle').textContent = 'Scan Title Deed';
+  document.getElementById('modalSub').textContent =
+    'Upload a photo or scan of the title deed to auto-fill property details.';
+  document.getElementById('scanOverlay').classList.add('open');
+  _activateDocType('deed');
+}
+
+function _showTabs(types) {
+  const allTabs = { eid:0, passport:1, deed:2, manual:3 };
+  const tabs = document.querySelectorAll('.doc-tab');
+  tabs.forEach((tab, i) => {
+    const key = Object.keys(allTabs)[i];
+    tab.style.display = types.includes(key) ? '' : 'none';
+    tab.classList.remove('on');
+  });
+}
+
+function closeModal() {
+  document.getElementById('scanOverlay').classList.remove('open');
+  resetModal();
+}
+
+function resetModal() {
+  imgB64 = null;
+  document.getElementById('scanPreview').classList.remove('show');
+  document.getElementById('scanResult').classList.remove('show');
+  document.getElementById('scanErr').classList.remove('show');
+  if (document.getElementById('fileInp')) document.getElementById('fileInp').value = '';
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.onclick = doScan;
+  btn.textContent = 'Scan & Fill';
+}
+
+function setDocType(type, el) {
+  document.querySelectorAll('.doc-tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  _activateDocType(type);
+}
+
+function _activateDocType(type) {
+  docType = type;
+  document.getElementById('passportSideRow').style.display = type === 'passport' ? 'flex' : 'none';
+  document.getElementById('uploadSection').style.display = type === 'manual' ? 'none' : 'block';
+  document.getElementById('manualSection').style.display = type === 'manual' ? 'block' : 'none';
+
+  // Update file accept for deed (allows PDF images)
+  const fileInp = document.getElementById('fileInp');
+  fileInp.accept = type === 'deed' ? 'image/*,.pdf' : 'image/*';
+
+  // Update hint text
+  const hints = {
+    eid:      '🪪 Photo of Emirates ID front — name and ID number will be extracted.',
+    passport: '📘 Photo of passport data page — name and passport number extracted.',
+    deed:     '📄 Photo or scan of DLD title deed — unit, plot, area and owner extracted.',
+    manual:   '✏️ Type the details below and tap Apply to fill the form.',
+  };
+  document.getElementById('scanHint').textContent = hints[type] || '';
+
+  const btn = document.getElementById('scanBtn');
+  btn.textContent = type === 'manual' ? 'Apply' : 'Scan & Fill';
+  btn.disabled = type !== 'manual';
+
+  if (type === 'manual') buildManualFields();
+  // reset upload state without clearing docType
+  imgB64 = null;
+  document.getElementById('scanPreview').classList.remove('show');
+  document.getElementById('scanResult').classList.remove('show');
+  document.getElementById('scanErr').classList.remove('show');
+  if (document.getElementById('fileInp')) document.getElementById('fileInp').value = '';
+}
+
+function setSide(side, el) {
+  scanSide = side;
+  document.querySelectorAll('.side-tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function buildManualFields() {
+  const isProp = scanTarget === 'property';
+  const isLandlord = scanTarget === 'landlord';
+  const container = document.getElementById('manualFields');
+
+  if (isProp) {
+    container.innerHTML = `
+      <div class="field"><label>Location</label><input type="text" id="m_location" placeholder="e.g. Dubai Marina"></div>
+      <div class="field"><label>Building Name</label><input type="text" id="m_building" placeholder="Building / tower name"></div>
+      <div class="field"><label>Unit / Property No.</label><input type="text" id="m_propNo" placeholder="e.g. Apt 1204"></div>
+      <div class="field"><label>Property Type</label><input type="text" id="m_propType" placeholder="Apartment, Villa…"></div>
+      <div class="field"><label>Area (m²)</label><input type="number" id="m_area" placeholder="85.5" step="0.01"></div>
+      <div class="field"><label>Plot No.</label><input type="text" id="m_plot" placeholder="Plot number"></div>
+      <div class="field"><label>Makani No.</label><input type="text" id="m_makani" placeholder="10-digit"></div>
+      <div class="field"><label>DEWA Premises No.</label><input type="text" id="m_dewa" placeholder="DEWA number"></div>
+    `;
+  } else {
+    container.innerHTML = `
+      <div class="field"><label>Full Name</label><input type="text" id="m_name" placeholder="Full legal name"></div>
+      <div class="field"><label>Emirates ID</label><input type="text" id="m_eid" class="eid" placeholder="784-XXXX-XXXXXXX-X" maxlength="18"></div>
+      <div class="field"><label>Phone</label><input type="tel" id="m_phone" placeholder="+971 50 000 0000"></div>
+      <div class="field"><label>Email</label><input type="email" id="m_email" placeholder="email@example.com"></div>
+      ${isLandlord ? `
+      <div class="field"><label>License No.</label><input type="text" id="m_license" placeholder="Trade licence no."></div>
+      <div class="field"><label>Licensing Authority</label><input type="text" id="m_authority" placeholder="e.g. DED, DMCC"></div>` : ''}
+    `;
+    const eid = document.getElementById('m_eid');
+    if (eid) eid.addEventListener('input', function() {
+      let v = this.value.replace(/[^0-9]/g,'');
+      if (v.length > 3)  v = v.slice(0,3)+'-'+v.slice(3);
+      if (v.length > 8)  v = v.slice(0,8)+'-'+v.slice(8);
+      if (v.length > 16) v = v.slice(0,16)+'-'+v.slice(16);
+      this.value = v.slice(0,18);
+    });
+  }
+  document.getElementById('scanBtn').disabled = false;
+}
+
+function onFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  imgMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imgB64 = ev.target.result.split(',')[1];
+    const prev = document.getElementById('scanPreview');
+    prev.src = ev.target.result;
+    prev.classList.add('show');
+    document.getElementById('scanResult').classList.remove('show');
+    document.getElementById('scanErr').classList.remove('show');
+    document.getElementById('scanBtn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function doScan() {
+  if (docType === 'manual') { applyManual(); return; }
+  if (!imgB64) return;
+
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Scanning…';
+  document.getElementById('scanErr').classList.remove('show');
+  document.getElementById('scanResult').classList.remove('show');
+
+  try {
+    const res = await fetch('/api/scan-id', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ imageBase64: imgB64, mimeType: imgMime, side: scanSide, docType })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Scan failed');
+
+    showScanResult(data);
+    applyScanned(data);
+
+    btn.disabled = false;
+    btn.textContent = '✓ Close';
+    btn.onclick = closeModal;
+  } catch (err) {
+    const el = document.getElementById('scanErr');
+    el.textContent = `⚠️ ${err.message} — Please ensure the document is clear and try again.`;
+    el.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Retry';
+  }
+}
+
+function showScanResult(data) {
+  const el = document.getElementById('scanResult');
+  const labels = {
+    fullName:'Full Name', emiratesId:'Emirates ID', passportNo:'Passport No.',
+    nationality:'Nationality', dateOfBirth:'Date of Birth', gender:'Gender', expiryDate:'Expiry',
+    // deed fields
+    ownerName:'Owner Name', unitNo:'Unit No.', plotNo:'Plot No.',
+    buildingName:'Building', area:'Area (m²)', dewaNo:'DEWA No.',
+    location:'Location', propertyType:'Type',
+  };
+  let html = '<div class="scan-result-title">✅ Extracted — review and edit below</div>';
+  let count = 0;
+  Object.entries(data).forEach(([k,v]) => {
+    if (v && labels[k]) { html += `<div class="scan-row"><span>${labels[k]}</span><span>${v}</span></div>`; count++; }
+  });
+  if (count === 0) html += '<div class="scan-row"><span style="color:var(--text-muted)">No fields extracted — try a clearer photo</span></div>';
+  el.innerHTML = html;
+  el.classList.add('show');
+}
+
+function applyScanned(data) {
+  if (scanTarget === 'property') {
+    // Deed → property section fields
+    fillAndMark('location',     data.location);
+    fillAndMark('buildingName', data.buildingName);
+    fillAndMark('propertyNo',   data.unitNo || data.propertyNo);
+    fillAndMark('propertyType', data.propertyType);
+    fillAndMark('propertyArea', data.area);
+    fillAndMark('plotNo',       data.plotNo);
+    fillAndMark('makaniNo',     data.makaniNo);
+    fillAndMark('dewaPremises', data.dewaNo || data.dewaPremises);
+    // If deed has owner name, offer to fill landlord 1
+    if (data.ownerName) {
+      const ll = document.getElementById('landlord1_name');
+      if (ll && !ll.value) fillAndMark('landlord1_name', data.ownerName);
+    }
+  } else {
+    // ID / Passport → party fields
+    const t = scanTarget, i = scanIdx;
+    fillAndMark(`${t}${i}_name`, data.fullName || data.ownerName);
+    fillAndMark(`${t}${i}_eid`,  data.emiratesId || data.passportNo);
+    if (data.phone) fillAndMark(`${t}${i}_phone`, data.phone);
+    if (data.email) fillAndMark(`${t}${i}_email`, data.email);
+  }
+}
+
+function applyManual() {
+  if (scanTarget === 'property') {
+    fillAndMark('location',     document.getElementById('m_location')?.value);
+    fillAndMark('buildingName', document.getElementById('m_building')?.value);
+    fillAndMark('propertyNo',   document.getElementById('m_propNo')?.value);
+    fillAndMark('propertyType', document.getElementById('m_propType')?.value);
+    fillAndMark('propertyArea', document.getElementById('m_area')?.value);
+    fillAndMark('plotNo',       document.getElementById('m_plot')?.value);
+    fillAndMark('makaniNo',     document.getElementById('m_makani')?.value);
+    fillAndMark('dewaPremises', document.getElementById('m_dewa')?.value);
+  } else {
+    const t = scanTarget, i = scanIdx;
+    fillAndMark(`${t}${i}_name`,      document.getElementById('m_name')?.value);
+    fillAndMark(`${t}${i}_eid`,       document.getElementById('m_eid')?.value);
+    fillAndMark(`${t}${i}_phone`,     document.getElementById('m_phone')?.value);
+    fillAndMark(`${t}${i}_email`,     document.getElementById('m_email')?.value);
+    if (scanTarget === 'landlord') {
+      fillAndMark(`${t}${i}_license`,   document.getElementById('m_license')?.value);
+      fillAndMark(`${t}${i}_authority`, document.getElementById('m_authority')?.value);
+    }
+  }
+  closeModal();
+}
+
+function fillAndMark(idOrName, val) {
+  if (!val) return;
+  const el = document.getElementById(idOrName)
+          || document.querySelector(`[name="${idOrName}"]`);
+  if (!el) return;
+  el.value = val;
+  el.classList.add('autofilled');
+  setTimeout(() => el.classList.remove('autofilled'), 3500);
+}
+
+// ── Collect all form data into a payload object ─────────────────────────
+function collectFormData() {
+  const fmtDate = iso => {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
+  const landlords = [];
+  document.querySelectorAll('[id^="landlord-"]').forEach(block => {
+    if (!block.classList.contains('party-block')) return;
+    const m = block.id.match(/landlord-(\d+)/);
+    if (!m) return;
+    const i = m[1];
+    const name = document.getElementById(`landlord${i}_name`)?.value;
+    if (!name) return;
+    landlords.push({
+      name, lessorName: name,
+      emiratesId:    document.getElementById(`landlord${i}_eid`)?.value || '',
+      phone:         document.getElementById(`landlord${i}_phone`)?.value || '',
+      email:         document.getElementById(`landlord${i}_email`)?.value || '',
+      licenseNo:     document.getElementById(`landlord${i}_license`)?.value || '',
+      licensingAuth: document.getElementById(`landlord${i}_authority`)?.value || '',
+    });
+  });
+
+  const tenants = [];
+  document.querySelectorAll('[id^="tenant-"]').forEach(block => {
+    if (!block.classList.contains('party-block')) return;
+    const m = block.id.match(/tenant-(\d+)/);
+    if (!m) return;
+    const i = m[1];
+    const name = document.getElementById(`tenant${i}_name`)?.value;
+    if (!name) return;
+    tenants.push({
+      name,
+      emiratesId: document.getElementById(`tenant${i}_eid`)?.value || '',
+      phone:      document.getElementById(`tenant${i}_phone`)?.value || '',
+      email:      document.getElementById(`tenant${i}_email`)?.value || '',
+    });
+  });
+
+  const fd = new FormData(document.getElementById('form'));
+  const raw = Object.fromEntries(fd.entries());
+
+  return {
+    date:            fmtDate(raw.date),
+    landlords,
+    tenants,
+    propertyUsage:   raw.propertyUsage,
+    location:        raw.location        || '',
+    buildingName:    raw.buildingName    || '',
+    propertyNo:      raw.propertyNo      || '',
+    propertyType:    raw.propertyType    || '',
+    propertyArea:    raw.propertyArea    || '',
+    plotNo:          raw.plotNo          || '',
+    makaniNo:        raw.makaniNo        || '',
+    dewaPremises:    raw.dewaPremises    || '',
+    contractFrom:    fmtDate(raw.contractFrom),
+    contractTo:      fmtDate(raw.contractTo),
+    annualRent:      raw.annualRent      || '',
+    contractValue:   raw.contractValue   || '',
+    securityDeposit: raw.securityDeposit || '',
+    modeOfPayment:   raw.modeOfPayment   || '',
+    additionalTerms: [
+      raw.additionalTerm1 || '',
+      raw.additionalTerm2 || '',
+      raw.additionalTerm3 || '',
+      raw.additionalTerm4 || '',
+      raw.additionalTerm5 || '',
+    ].filter(t => t.trim()),
+  };
+}
+
+// ── Open print preview ───────────────────────────────────────────────────
+function openPreview() {
+  const payload = collectFormData();
+  try {
+    localStorage.setItem('ejariFormData', JSON.stringify(payload));
+  } catch(e) {
+    alert('Could not save form data for preview: ' + e.message);
+    return;
+  }
+  window.open('/preview.html', '_blank');
+}
+
+// ── Form submit → download filled PDF ────────────────────────────────────
+document.getElementById('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Generating PDF…';
+
+  const payload = collectFormData();
+  // Also save for preview continuity
+  try { localStorage.setItem('ejariFormData', JSON.stringify(payload)); } catch(_) {}
+
+  // Format numbers with commas for PDF
+  const fmtNum = n => n ? Number(n).toLocaleString() : '';
+  const pdfPayload = {
+    ...payload,
+    annualRent:      fmtNum(payload.annualRent),
+    contractValue:   fmtNum(payload.contractValue),
+    securityDeposit: fmtNum(payload.securityDeposit),
+  };
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(pdfPayload)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const tname = (pdfPayload.tenants[0]?.name || 'contract').replace(/\s+/g,'_');
+    const ddate = pdfPayload.date || 'undated';
+    a.download = `ejari_${tname}_${ddate}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    document.getElementById('toast').classList.add('show');
+    setTimeout(() => document.getElementById('toast').classList.remove('show'), 7000);
+  } catch (err) {
+    alert('Error generating PDF: ' + err.message);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>📄</span> Download Filled PDF';
+});
+</script>
+</body>
+</html>
