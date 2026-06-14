@@ -188,7 +188,7 @@ input.eid{font-family:'IBM Plex Mono',monospace;}
     <div class="card-body">
       <div class="scan-bar">
         <div class="scan-bar-text"><b>📄 Scan Title Deed</b>Auto-fill property fields from a photo</div>
-        <button class="sbtn" onclick="openScan('property',0)">📷 Scan</button>
+        <button class="sbtn" onclick="openScan('property',0)">✏️ Enter Details</button>
       </div>
       <div class="field" style="margin-bottom:4px">
         <label>Property Usage</label>
@@ -372,7 +372,7 @@ function addParty(type) {
   div.innerHTML = `
     <div class="party-hdr">
       <span class="party-title">${label}</span>
-      <button class="sbtn" style="font-size:10px;padding:5px 10px" onclick="openScan('${type}',${idx})">🪪 Scan / Enter</button>
+      <button class="sbtn" style="font-size:10px;padding:5px 10px" onclick="openScan('${type}',${idx})">✏️ Enter Details</button>
       ${canRm ? '<button class="party-rm" onclick="document.getElementById(\'' + type+'-'+idx + '\').remove()">×</button>' : ''}
     </div>
     <div class="party-body">
@@ -405,17 +405,20 @@ function addParty(type) {
 // SCAN MODAL
 // ═══════════════════════════════════════════
 function openScan(type, idx) {
-  scanTarget=type; scanIdx=idx; docType='eid'; scanSide='front'; imgB64=null;
+  scanTarget=type; scanIdx=idx; docType='manual'; scanSide='front'; imgB64=null;
   const isProp = type==='property';
-  document.getElementById('scan-title').textContent = isProp ? 'Scan Title Deed' : (type==='ll'?'Landlord '+idx:' Tenant '+idx)+' — Add Details';
-  document.getElementById('scan-sub').textContent = 'Scan a document or enter manually.';
-  // Show/hide deed tab
-  const tabs = document.querySelectorAll('.doc-tab');
-  if(isProp){ tabs[0].style.display='none'; tabs[1].style.display='none'; tabs[2].style.display=''; }
-  else { tabs[0].style.display=''; tabs[1].style.display=''; tabs[2].style.display='none'; }
+  document.getElementById('scan-title').textContent = isProp ? 'Enter Property Details' : (type==='ll'?'Landlord '+idx:' Tenant '+idx)+' — Enter Details';
+  document.getElementById('scan-sub').textContent = 'Fill in the details below and tap Apply.';
   resetModal();
   document.getElementById('scanModal').classList.add('on');
-  setDoc(isProp?'deed':'eid', isProp?tabs[2]:tabs[0]);
+  // Always open in manual mode
+  const tabs = document.querySelectorAll('.doc-tab');
+  tabs.forEach(t=>{ t.style.display='none'; });
+  document.getElementById('upload-section').style.display='none';
+  document.getElementById('manual-section').style.display='block';
+  document.getElementById('scan-btn').textContent='Apply';
+  document.getElementById('scan-btn').disabled=false;
+  buildManual();
 }
 
 function closeModal() { document.getElementById('scanModal').classList.remove('on'); resetModal(); }
@@ -495,7 +498,7 @@ function onFile(e) {
 }
 
 async function doScan() {
-  if(docType==='manual'){ applyManual(); return; }
+  applyManual(); return; // Manual entry only
   if(!imgB64) return;
   const btn=document.getElementById('scan-btn');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Scanning…';
@@ -519,10 +522,17 @@ async function doScan() {
   const prompt = prompts[docType] || (scanSide==='back'?prompts.back:prompts.eid);
 
   try {
-    const geminiUrl=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Support both old (AIza...) and new (AQ...) Gemini key formats
+    const isNewKey = apiKey.startsWith('AQ.');
+    const geminiUrl = isNewKey
+      ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
+      : `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const geminiHeaders = isNewKey
+      ? {'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`}
+      : {'Content-Type':'application/json'};
     const res=await fetch(geminiUrl,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:geminiHeaders,
       body:JSON.stringify({
         contents:[{parts:[
           {inline_data:{mime_type:imgMime,data:imgB64}},
