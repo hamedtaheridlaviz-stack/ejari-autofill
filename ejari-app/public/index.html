@@ -503,7 +503,7 @@ async function doScan() {
 
   let apiKey=localStorage.getItem('gemini_key');
   if(!apiKey){
-    apiKey=prompt('Enter your Google Gemini API key to enable ID scanning.\nGet one FREE at aistudio.google.com/apikeys\n\nStored only in this browser:');
+    apiKey=prompt('Enter your Google Gemini API key.\nGet one FREE at aistudio.google.com/apikeys\nStored only in this browser:');
     if(!apiKey||!apiKey.trim()){ btn.disabled=false; btn.textContent='Scan & Fill'; return; }
     localStorage.setItem('gemini_key',apiKey.trim());
     apiKey=apiKey.trim();
@@ -517,23 +517,18 @@ async function doScan() {
   };
   const prompt=prompts[docType]||(scanSide==='back'?prompts.back:prompts.eid);
 
-  try {
+  try{
     const isNewKey=apiKey.startsWith('AQ.');
     const geminiUrl=isNewKey
       ?'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
-      :\`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=\${apiKey}\`;
+      :'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey;
     const geminiHeaders=isNewKey
-      ?{'Content-Type':'application/json','Authorization':\`Bearer \${apiKey}\`}
+      ?{'Content-Type':'application/json','Authorization':'Bearer '+apiKey}
       :{'Content-Type':'application/json'};
-
     const res=await fetch(geminiUrl,{
-      method:'POST',
-      headers:geminiHeaders,
+      method:'POST',headers:geminiHeaders,
       body:JSON.stringify({
-        contents:[{parts:[
-          {inline_data:{mime_type:imgMime,data:imgB64}},
-          {text:prompt}
-        ]}],
+        contents:[{parts:[{inline_data:{mime_type:imgMime,data:imgB64}},{text:prompt}]}],
         generationConfig:{maxOutputTokens:600,temperature:0}
       })
     });
@@ -546,74 +541,18 @@ async function doScan() {
       throw new Error(e.error?.message||'API error '+res.status);
     }
     const data=await res.json();
-    const text=((data.candidates?.[0]?.content?.parts?.[0]?.text)||'').replace(/\`\`\`json|\`\`\`/g,'').trim();
-    let parsed; try{parsed=JSON.parse(text);}catch{throw new Error('Could not read document. Try a clearer photo.');}
-    showResult(parsed); applyScanned(parsed);
-    btn.disabled=false; btn.textContent='✓ Close'; btn.onclick=closeModal;
-  } catch(err){
-    const el=document.getElementById('scan-err');
-    el.textContent='⚠️ '+err.message; el.classList.add('on');
-    btn.disabled=false; btn.textContent='Retry';
-  }
-// end doScan
-  if(!imgB64) return;
-  const btn=document.getElementById('scan-btn');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Scanning…';
-  document.getElementById('scan-err').classList.remove('on');
-  document.getElementById('scan-result').classList.remove('on');
-
-  let apiKey=localStorage.getItem('gemini_key');
-  if(!apiKey){
-    apiKey=prompt('Enter your Google Gemini API key.\nGet one FREE at aistudio.google.com → Get API key → Create API key.\nNo credit card needed. Stored only in this browser:');
-    if(!apiKey||!apiKey.trim()){ btn.disabled=false; btn.textContent='Scan & Fill'; return; }
-    localStorage.setItem('gemini_key',apiKey.trim());
-    apiKey=apiKey.trim();
-  }
-
-  const prompts={
-    deed:'This is a Dubai Land Department title deed. Extract: owner full name, unit number, building name, location/area in Dubai, plot number, property type, area in sqm, DEWA premises number, Makani number. Return ONLY JSON: {ownerName,unitNo,buildingName,location,plotNo,propertyType,area,dewaNo,makaniNo}. null for missing.',
-    passport:'Passport document. Extract: full name in English, passport number, nationality, date of birth DD/MM/YYYY, gender, expiry date. Return ONLY JSON: {fullName,passportNo,nationality,dateOfBirth,gender,expiryDate}. null for unclear.',
-    back:'UAE Emirates ID back. Extract: address, employer, occupation, expiry. Return ONLY JSON: {address,employer,occupation,expiryDate}. null for missing.',
-    eid:'UAE Emirates ID front. Extract: full name in English, Emirates ID number format 784-XXXX-XXXXXXX-X, nationality, date of birth DD/MM/YYYY, gender, expiry date. Return ONLY JSON: {fullName,emiratesId,nationality,dateOfBirth,gender,expiryDate}. null for unclear.'
-  };
-  const prompt = prompts[docType] || (scanSide==='back'?prompts.back:prompts.eid);
-
-  try {
-    // Support both old (AIza...) and new (AQ...) Gemini key formats
-    const isNewKey = apiKey.startsWith('AQ.');
-    const geminiUrl = isNewKey
-      ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
-      : `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    const geminiHeaders = isNewKey
-      ? {'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`}
-      : {'Content-Type':'application/json'};
-    const res=await fetch(geminiUrl,{
-      method:'POST',
-      headers:geminiHeaders,
-      body:JSON.stringify({
-        contents:[{parts:[
-          {inline_data:{mime_type:imgMime,data:imgB64}},
-          {text:prompt}
-        ]}],
-        generationConfig:{maxOutputTokens:600,temperature:0}
-      })
-    });
-    if(!res.ok){
-      if(res.status===400||res.status===403){ localStorage.removeItem('gemini_key'); throw new Error('Invalid API key. Get a free key at aistudio.google.com then tap the key button top right.'); }
-      const e=await res.json().catch(()=>({}));
-      throw new Error(e.error?.message||'API error '+res.status);
-    }
-    const data=await res.json();
     const text=((data.candidates?.[0]?.content?.parts?.[0]?.text)||'').replace(/```json|```/g,'').trim();
-        let parsed; try{parsed=JSON.parse(text);}catch{throw new Error('Could not read document. Try a clearer photo.');}
+    let parsed;
+    try{parsed=JSON.parse(text);}catch{throw new Error('Could not read document. Try a clearer photo.');}
     showResult(parsed); applyScanned(parsed);
     btn.disabled=false; btn.textContent='✓ Close'; btn.onclick=closeModal;
-  } catch(err){
+  }catch(err){
     const el=document.getElementById('scan-err');
     el.textContent='⚠️ '+err.message; el.classList.add('on');
     btn.disabled=false; btn.textContent='Retry';
   }
 }
+
 
 function showResult(d){
   const labels={fullName:'Name',emiratesId:'Emirates ID',passportNo:'Passport',nationality:'Nationality',
